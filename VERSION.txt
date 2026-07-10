@@ -1,0 +1,4 @@
+Codex Desktop Model Menu Unfilter 1.0.0
+
+Tested Codex Desktop version: 26.707.3748.0
+Test date: 2026-07-10
