@@ -11,6 +11,7 @@ $packageRoot = Split-Path -Parent $PSScriptRoot
 $sourceLauncherScript = Join-Path $PSScriptRoot "Launch-Codex-Model-Menu.ps1"
 $sourceLauncherCode = Join-Path $PSScriptRoot "CodexModelMenuLauncher.cs"
 $installDir = Join-Path $env:LOCALAPPDATA "Programs\Codex-5.6"
+$patchedExe = Join-Path $installDir "ChatGPT.exe"
 $launcherDir = Join-Path $env:LOCALAPPDATA "Codex-5.6-Launcher"
 $installedLauncherScript = Join-Path $launcherDir "Launch-Codex-Model-Menu.ps1"
 $installedLauncherCode = Join-Path $launcherDir "CodexModelMenuLauncher.cs"
@@ -63,8 +64,8 @@ function New-CodexShortcut {
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($Path)
     $shortcut.TargetPath = $launcherExe
-    $shortcut.WorkingDirectory = $installDir
-    $shortcut.IconLocation = "$launcherExe,0"
+    $shortcut.WorkingDirectory = $launcherDir
+    $shortcut.IconLocation = "$patchedExe,0"
     $shortcut.Description = "Codex Desktop with an unfiltered local model menu"
     $shortcut.Save()
 }
@@ -119,7 +120,7 @@ try {
     Remove-Item -LiteralPath $legacyLauncherExe -Force -ErrorAction SilentlyContinue
 
     $installRecord = [ordered]@{
-        patcher_version = "1.0.0"
+        patcher_version = "1.0.1"
         store_codex_version = $package.Version.ToString()
         installed_at = (Get-Date).ToString("o")
         package_source = $packageRoot

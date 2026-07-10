@@ -1,3 +1,8 @@
+param(
+    [switch]$Silent,
+    [switch]$Force
+)
+
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName PresentationFramework
 
@@ -19,6 +24,11 @@ function Show-Message {
         [System.Windows.MessageBoxButton]$Buttons,
         [System.Windows.MessageBoxImage]$Icon
     )
+
+    if ($Silent) {
+        Write-Host $Text
+        return [System.Windows.MessageBoxResult]::OK
+    }
 
     Add-Type -AssemblyName PresentationFramework
     return [System.Windows.MessageBox]::Show(
@@ -43,37 +53,103 @@ function Assert-ExactChildPath {
     }
 }
 
-try {
-    $running = Get-CimInstance Win32_Process |
-        Where-Object {
-            if (-not $_.ExecutablePath) {
-                return $false
-            }
-            $candidate = [System.IO.Path]::GetFullPath($_.ExecutablePath).TrimEnd("\")
-            $directory = [System.IO.Path]::GetFullPath($installDir).TrimEnd("\")
-            return (
-                $candidate.Equals($directory, [System.StringComparison]::OrdinalIgnoreCase) -or
-                $candidate.StartsWith(
-                    $directory + "\",
-                    [System.StringComparison]::OrdinalIgnoreCase
-                )
+function Test-PathInsideDirectory {
+    param(
+        [string]$CandidatePath,
+        [string]$DirectoryPath
+    )
+
+    try {
+        $candidate = [System.IO.Path]::GetFullPath($CandidatePath).TrimEnd("\")
+        $directory = [System.IO.Path]::GetFullPath($DirectoryPath).TrimEnd("\")
+        return (
+            $candidate.Equals($directory, [System.StringComparison]::OrdinalIgnoreCase) -or
+            $candidate.StartsWith(
+                $directory + "\",
+                [System.StringComparison]::OrdinalIgnoreCase
             )
+        )
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-ProcessInsideInstallDirectory {
+    param([object]$Process)
+
+    if ($Process.ExecutablePath -and
+        (Test-PathInsideDirectory `
+            -CandidatePath $Process.ExecutablePath `
+            -DirectoryPath $installDir)) {
+        return $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Process.CommandLine)) {
+        $directory = [System.IO.Path]::GetFullPath($installDir).TrimEnd("\") + "\"
+        return (
+            $Process.CommandLine.StartsWith(
+                '"' + $directory,
+                [System.StringComparison]::OrdinalIgnoreCase
+            ) -or
+            $Process.CommandLine.StartsWith(
+                $directory,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )
+        )
+    }
+
+    return $false
+}
+
+function Get-InstalledCopyProcesses {
+    return @(
+        Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object { Test-ProcessInsideInstallDirectory -Process $_ }
+    )
+}
+
+function Stop-InstalledCopyProcesses {
+    $deadline = (Get-Date).AddSeconds(10)
+    do {
+        $remaining = Get-InstalledCopyProcesses
+        if ($remaining.Count -eq 0) {
+            return
         }
+        foreach ($process in $remaining) {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Milliseconds 250
+    } while ((Get-Date) -lt $deadline)
+
+    $remaining = Get-InstalledCopyProcesses
+    if ($remaining.Count -gt 0) {
+        $ids = ($remaining | ForEach-Object { $_.ProcessId }) -join ", "
+        throw "Processes still use the patched install directory (PIDs: $ids)."
+    }
+}
+
+try {
+    $running = Get-InstalledCopyProcesses
 
     if ($running) {
-        $choice = Show-Message `
-            -Text "The patched Codex app is running. Close it and continue uninstalling?" `
-            -Buttons ([System.Windows.MessageBoxButton]::YesNo) `
-            -Icon ([System.Windows.MessageBoxImage]::Question)
+        if ($Force) {
+            $choice = [System.Windows.MessageBoxResult]::Yes
+        }
+        elseif ($Silent) {
+            throw "The patched Codex app is running. Close it or use -Force to confirm termination."
+        }
+        else {
+            $choice = Show-Message `
+                -Text "The patched Codex app is running. Close it and continue uninstalling?" `
+                -Buttons ([System.Windows.MessageBoxButton]::YesNo) `
+                -Icon ([System.Windows.MessageBoxImage]::Question)
+        }
         if ($choice -ne [System.Windows.MessageBoxResult]::Yes) {
             exit 0
         }
 
-        $running |
-            ForEach-Object {
-                Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
-            }
-        Start-Sleep -Milliseconds 500
+        Stop-InstalledCopyProcesses
     }
 
     Remove-Item -LiteralPath $desktopShortcut -Force -ErrorAction SilentlyContinue

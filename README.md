@@ -24,7 +24,8 @@
 - 不修改 Microsoft Store 中的官方签名包。
 - 在用户目录创建独立、可回滚的 Codex Desktop 副本。
 - 使用等长字节补丁解除本地模型菜单过滤。
-- 官方 Codex 更新后，在临时目录完成复制和补丁，成功后才替换旧副本。
+- 启动时传递 Windows 用户界面语言，首次直接启动也不依赖先打开官方版来初始化语言。
+- 使用源文件和补丁文件哈希检测官方 Codex 更新或副本损坏，在临时目录完成复制和补丁，成功后才替换旧副本。
 - 提供安装、修复、更新和卸载脚本。
 - 不收集数据，不发送网络请求，不包含作者的个人配置。
 
@@ -40,7 +41,7 @@
 
 ## 下载
 
-打开 [v1.0.0 Release](https://github.com/I-am-gation/codex-desktop-model-menu-unfilter/releases/tag/v1.0.0)，在 **Assets** 中下载 GitHub 自动生成的 `Source code (zip)`。
+打开 [Latest Release](https://github.com/I-am-gation/codex-desktop-model-menu-unfilter/releases/latest)，在 **Assets** 中下载文件名带 `windows-x64` 的 ZIP。不要下载 GitHub 自动生成的 `Source code (zip)`；它不是按平台整理的分享包，而且不会计入平台安装包的下载量。
 
 完整解压后运行 `Install.cmd`。不要只下载单个脚本，安装器需要保留项目目录结构。
 
@@ -59,7 +60,7 @@
 
 ## 更新与修复
 
-启动器会比较 Microsoft Store Codex 的版本。检测到新版本时，它会：
+启动器会比较 Microsoft Store Codex 的包身份和 `app.asar` 文件哈希，并校验已安装副本的补丁后哈希。检测到更新或副本损坏时，它会：
 
 1. 将新版本复制到独立临时目录。
 2. 应用补丁并验证关键文件。
@@ -112,6 +113,14 @@
 `%LOCALAPPDATA%\Codex-5.6-Launcher\launcher.log`
 
 提交日志前请自行检查并隐藏不希望公开的信息。
+
+### 启动后立即退出或看起来“闪退”
+
+v1.0.1 会等待官方 Codex 的全部子进程退出，并检查新副本在启动阶段是否仍然存活。失败时会显示退出码，并写入：
+
+`%LOCALAPPDATA%\Codex-5.6-Launcher\launcher.log`
+
+先关闭官方 Codex 和 `Codex Model Menu`，再运行 `Repair-or-Update.cmd`。不要在没有显示驱动崩溃证据时默认添加 `--disable-gpu`；这会掩盖真正的启动问题。
 
 ## 安全与隐私
 
