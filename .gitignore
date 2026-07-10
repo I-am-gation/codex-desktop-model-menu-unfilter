@@ -1,0 +1,7 @@
+*.zip
+*.zip.sha256.txt
+*.test.exe
+*.tmp
+.codex56-*
+launcher.log
+install.json
