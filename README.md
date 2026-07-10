@@ -38,24 +38,13 @@
 
 当前版本于 2026-07-10 在 Codex Desktop `26.707.3748.0` 上完成验证。
 
-## 下载与校验
+## 下载
 
-请从仓库的 **Releases** 页面下载：
+打开 [v1.0.0 Release](https://github.com/I-am-gation/codex-desktop-model-menu-unfilter/releases/tag/v1.0.0)，在 **Assets** 中下载 GitHub 自动生成的 `Source code (zip)`。
 
-- `codex-desktop-model-menu-unfilter-v1.0.0.zip`
-- `codex-desktop-model-menu-unfilter-v1.0.0.zip.sha256.txt`
+完整解压后运行 `Install.cmd`。不要只下载单个脚本，安装器需要保留项目目录结构。
 
-不要下载 GitHub 自动生成的 `Source code (zip)` 代替 Release 安装包。
-
-在下载目录打开 PowerShell，执行：
-
-```powershell
-Get-FileHash .\codex-desktop-model-menu-unfilter-v1.0.0.zip -Algorithm SHA256
-```
-
-将输出与单独下载的 `.sha256.txt` 对比。校验一致后再解压和运行。
-
-如果 Windows 因网络下载标记而阻止脚本，可以在确认哈希正确后，右键 ZIP -> `属性` -> `解除锁定`，再重新解压。不要关闭 Windows Defender。
+如果 Windows 因网络下载标记而阻止脚本，可以在确认下载来源是本仓库后，右键 ZIP -> `属性` -> `解除锁定`，再重新解压。不要关闭 Windows Defender。
 
 ## 安装
 
